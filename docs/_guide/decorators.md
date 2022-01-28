@@ -101,4 +101,28 @@ class HelloWorldElement extends HTMLElement {
 
 }
 ```
+
+### Decorators as Sugar
+
+An important realisation is that Catalyst only uses _decorators as syntax sugar_. The decorators are normal functions that mutate a class, and can be called just like a normal function, but with some specific arguments. The following two code snippets are functionally identical:
+
+```js
+@controller
+class HelloWorldElement extends HTMLElement {
+  @target output
+  @targets pages
+  @attr foo = 1
+}
+```
+
+```js
+class HelloWorldElement extends HTMLElement {}
+target(HelloWorldElement.prototype, 'output')
+targets(HelloWorldElement.prototype, 'pages')
+attr(HelloWorldElement.prototype, 'foo')
+controller(HelloWorldElement)
+```
+
+Just make sure to call `controller` _last_!
+
 <br>

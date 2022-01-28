@@ -1,7 +1,7 @@
-export {bind, listenForBind} from './bind.js'
-export {register} from './register.js'
-export {findTarget, findTargets} from './findtarget.js'
-export {target, targets} from './target.js'
+import './bind.js'
+import './register.js'
+import './target.js'
+import './attr.js'
+import './auto-shadow-root.js'
+
 export {controller} from './controller.js'
-export {attr, initializeAttrs, defineObservedAttributes} from './attr.js'
-export {autoShadowRoot} from './auto-shadow-root.js'

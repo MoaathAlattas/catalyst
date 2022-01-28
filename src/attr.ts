@@ -1,6 +1,6 @@
 import type {CustomElement} from './custom-element.js'
+import {defineMark, getPropertiesToCall} from './mark.js'
 
-const attrs = new WeakMap<Record<PropertyKey, unknown>, string[]>()
 type attrValue = string | number | boolean
 
 /**
@@ -10,20 +10,15 @@ type attrValue = string | number | boolean
  * The signature is typed such that the property must be one of a String,
  * Number or Boolean. This matches the behavior of `initializeAttrs`.
  */
-export function attr<K extends string>(proto: Record<K, attrValue>, key: K): void {
-  if (!attrs.has(proto)) attrs.set(proto, [])
-  attrs.get(proto)!.push(key)
-}
+export const attr = defineMark<string, attrValue>('attr', {
+  initializePropertyCallback: initializeAttr,
+  initializeClassCallback: defineObservedAttributes
+})
 
 /**
- * initializeAttrs is called with a set of class property names (if omitted, it
- * will look for any properties tagged with the `@attr` decorator). With this
- * list it defines property descriptors for each property that map to `data-*`
- * attributes on the HTMLElement instance.
- *
- * It works around Native Class Property semantics - which are equivalent to
- * calling `Object.defineProperty` on the instance upon creation, but before
- * `constructor()` is called.
+ * initializeAttr is called with a class property name. With this
+ * name it defines a property descriptor that maps to the `data-[name]`
+ * attribute on the HTMLElement instance.
  *
  * If a class property is assigned to the class body, it will infer the type
  * (using `typeof`) and define an appropriate getter/setter combo that aligns
@@ -34,71 +29,77 @@ export function attr<K extends string>(proto: Record<K, attrValue>, key: K): voi
  * This is automatically called as part of `@controller`. If a class uses the
  * `@controller` decorator it should not call this manually.
  */
-export function initializeAttrs(instance: HTMLElement, names?: Iterable<string>): void {
-  if (!names) names = getAttrNames(Object.getPrototypeOf(instance))
-  for (const key of names) {
-    const value = (<Record<PropertyKey, unknown>>(<unknown>instance))[key]
-    const name = attrToAttributeName(key)
-    let descriptor: PropertyDescriptor = {
-      get(this: HTMLElement): string {
-        return this.getAttribute(name) || ''
+export function initializeAttr(instance: HTMLElement, key: PropertyKey, value: attrValue): void {
+  const name = attrToAttributeName(String(key))
+  let descriptor: PropertyDescriptor = {
+    get(this: HTMLElement): string {
+      return this.getAttribute(name) || ''
+    },
+    set(this: HTMLElement, newValue: string) {
+      this.setAttribute(name, newValue || '')
+    }
+  }
+  if (typeof value === 'number') {
+    descriptor = {
+      get(this: HTMLElement): number {
+        return Number(this.getAttribute(name) || 0)
       },
       set(this: HTMLElement, newValue: string) {
-        this.setAttribute(name, newValue || '')
+        this.setAttribute(name, newValue)
       }
     }
-    if (typeof value === 'number') {
-      descriptor = {
-        get(this: HTMLElement): number {
-          return Number(this.getAttribute(name) || 0)
-        },
-        set(this: HTMLElement, newValue: string) {
-          this.setAttribute(name, newValue)
-        }
+  } else if (typeof value === 'boolean') {
+    descriptor = {
+      get(this: HTMLElement): boolean {
+        return this.hasAttribute(name)
+      },
+      set(this: HTMLElement, newValue: boolean) {
+        this.toggleAttribute(name, newValue)
       }
-    } else if (typeof value === 'boolean') {
-      descriptor = {
-        get(this: HTMLElement): boolean {
-          return this.hasAttribute(name)
-        },
-        set(this: HTMLElement, newValue: boolean) {
-          this.toggleAttribute(name, newValue)
-        }
-      }
-    }
-    Object.defineProperty(instance, key, descriptor)
-    if (key in instance && !instance.hasAttribute(name)) {
-      descriptor.set!.call(instance, value)
     }
   }
-}
-
-function getAttrNames(classObjectProto: Record<PropertyKey, unknown>): Set<string> {
-  const names: Set<string> = new Set()
-  let proto: Record<PropertyKey, unknown> | typeof HTMLElement = classObjectProto
-
-  while (proto && proto !== HTMLElement) {
-    const attrNames = attrs.get(<Record<PropertyKey, unknown>>proto) || []
-    for (const name of attrNames) names.add(name)
-    proto = Object.getPrototypeOf(proto)
+  Object.defineProperty(instance, key, descriptor)
+  if (key in instance && !instance.hasAttribute(name)) {
+    descriptor.set!.call(instance, value)
   }
-
-  return names
 }
 
 function attrToAttributeName(name: string): string {
   return `data-${name.replace(/([A-Z]($|[a-z]))/g, '-$1')}`.replace(/--/g, '-').toLowerCase()
 }
 
-export function defineObservedAttributes(classObject: CustomElement): void {
+export function defineObservedAttributes(classObject: CustomElement, additional?: string[]): void {
   let observed = classObject.observedAttributes || []
   Object.defineProperty(classObject, 'observedAttributes', {
     get() {
-      const attrMap = getAttrNames(classObject.prototype)
-      return [...attrMap].map(attrToAttributeName).concat(observed)
+      const attrs = []
+      for (const entry of getPropertiesToCall(classObject.prototype, initializeAttr)) {
+        attrs.push(attrToAttributeName(String(entry[1])))
+      }
+      if (additional) {
+        attrs.push(...attrs.map(attrToAttributeName))
+      }
+      return [...attrs, ...observed]
     },
     set(attributes: string[]) {
       observed = attributes
     }
   })
+}
+
+/**
+ * @deprecated
+ *
+ * `initializeAttr` should be used instead, which needs to be called for each `name`.
+ */
+export function initializeAttrs(instance: HTMLElement, names?: Iterable<string>): void {
+  if (!names) {
+    for (const [init, key] of getPropertiesToCall(Object.getPrototypeOf(instance), initializeAttr)) {
+      init(instance, key, (<Record<PropertyKey, attrValue>>(<unknown>instance))[key as string])
+    }
+  } else {
+    for (const key of names) {
+      initializeAttr(instance, key, (<Record<PropertyKey, attrValue>>(<unknown>instance))[key])
+    }
+  }
 }

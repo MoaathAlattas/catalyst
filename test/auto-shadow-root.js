@@ -1,4 +1,5 @@
-import {autoShadowRoot} from '../lib/auto-shadow-root.js'
+import {initializeInstance} from '../lib/mark.js'
+import '../lib/auto-shadow-root.js'
 
 describe('autoShadowRoot', () => {
   window.customElements.define('autoshadowroot-test-element', class extends HTMLElement {})
@@ -21,7 +22,7 @@ describe('autoShadowRoot', () => {
     template.setAttribute('data-shadowroot', 'open')
     instance.appendChild(template)
 
-    autoShadowRoot(instance)
+    initializeInstance(instance)
 
     expect(instance).to.have.property('shadowRoot').not.equal(null)
     expect(instance.shadowRoot.textContent).to.equal('Hello World')
@@ -35,7 +36,7 @@ describe('autoShadowRoot', () => {
     otherTemplate.setAttribute('data-shadowroot', 'open')
     instance.appendChild(template, otherTemplate)
 
-    autoShadowRoot(instance)
+    initializeInstance(instance)
 
     expect(instance).to.have.property('shadowRoot').equal(null)
   })
@@ -48,7 +49,7 @@ describe('autoShadowRoot', () => {
     div.appendChild(template)
     instance.appendChild(div)
 
-    autoShadowRoot(instance)
+    initializeInstance(instance)
 
     expect(instance).to.have.property('shadowRoot').equal(null)
   })
@@ -60,7 +61,7 @@ describe('autoShadowRoot', () => {
     template.setAttribute('data-shadowroot', '')
     instance.appendChild(template)
 
-    autoShadowRoot(instance)
+    initializeInstance(instance)
 
     expect(instance).to.have.property('shadowRoot').not.equal(null)
     expect(instance.shadowRoot.textContent).to.equal('Hello World')
@@ -79,7 +80,7 @@ describe('autoShadowRoot', () => {
       return shadowRoot
     })
 
-    autoShadowRoot(instance)
+    initializeInstance(instance)
 
     expect(instance).to.have.property('shadowRoot').equal(null)
     expect(instance.attachShadow).to.have.been.called.once.with.exactly({mode: 'closed'})

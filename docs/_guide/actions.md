@@ -155,7 +155,20 @@ Custom elements can create encapsulated DOM trees known as "Shadow" DOM. Catalys
 
 If you're using decorators, then the `@controller` decorator automatically handles binding of actions to a Controller.
 
-If you're not using decorators, then you'll need to call `bind(this)` somewhere inside of `connectedCallback()`.
+You _can_ use `@controller` like a regular function, without decorators, like so:
+
+```js
+import {controller} from '@github/catalyst'
+
+class HelloWorldElement extends HTMLElement {
+  connectedCallback() {
+    bind(this)
+  }
+}
+controller(HelloWorldElement)
+```
+
+Alternatively, if you don't want to use `@controller`, then you'll need to call `bind(this)` somewhere inside of `connectedCallback()`.
 
 ```js
 import {bind} from '@github/catalyst'

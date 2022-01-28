@@ -1,4 +1,9 @@
 import type {CustomElement} from './custom-element.js'
+import {defineMark} from './mark.js'
+
+defineMark('register', {
+  initializeClassCallback: register
+})
 
 /**
  * Register the controller as a custom element.

@@ -187,31 +187,59 @@ data-name ".*": Will set the value of `name`
 
 ### What about without Decorators?
 
-If you're not using decorators, then you won't be able to use the `@attr` decorator, but there is still a way to achieve the same result. Under the hood `@attr` simply tags a field, but `initializeAttrs` and `defineObservedAttributes` do all of the logic.
+You can use `@attr` like a normal functions, if you don't want to use decorators. For example the following two code snippets are functionally identical:
 
-Calling `initializeAttrs` in your connected callback, with the list of properties you'd like to initialize, and calling `defineObservedAttributes` with the class, can achieve the same result as `@attr`. The class fields can still be defined in your class, and they'll be overridden as described above. For example:
+```js
+@controller
+class HelloWorldElement extends HTMLElement {
+  @attr foo = 1
+  @attr bar = ''
+}
+```
+
+```js
+class HelloWorldElement extends HTMLElement {}
+attr(HelloWorldElement.prototype, 'foo')
+attr(HelloWorldElement.prototype, 'bar')
+controller(HelloWorldElement)
+```
+
+Just make sure to call `controller` _last_!
+
+If you don't want to use `controller` or `attr` then you can still make use of the underyling functionality. You'll need to call `initializeAttr` for each attribute you want to be mapped. You'll also need to call `defineObservedAttributes` with the names of any initialized attributes, like so:
 
 ```js
 import {initializeAttrs, defineObservedAttributes} from '@github/catalyst'
 
 class HelloWorldElement extends HTMLElement {
   foo = 1
+  bar = ''
 
   connectedCallback() {
-    initializeAttrs(this, ['foo'])
+    initializeAttr(this, 'foo')
+    initializeAttr(this, 'bar')
   }
 
 }
-defineObservedAttributes(HelloWorldElement, ['foo'])
+defineObservedAttributes(HelloWorldElement, ['foo', 'bar'])
 ```
 
-This example is functionally identical to:
+Alternatively if you don't like `defineObservedAttributes` you can also do this manually:
 
 ```js
-import {controller, attr} from '@github/catalyst'
+import {initializeAttrs} from '@github/catalyst'
 
-@controller
 class HelloWorldElement extends HTMLElement {
-  @attr foo = 1
+  foo = 1
+  bar = ''
+
+  connectedCallback() {
+    initializeAttr(this, 'foo')
+    initializeAttr(this, 'bar')
+  }
+
+  static get observedAttributes() {
+    return ['data-foo', 'data-bar']
+  }
 }
 ```

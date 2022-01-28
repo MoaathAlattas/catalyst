@@ -1,4 +1,5 @@
-import {bind, listenForBind} from '../lib/bind.js'
+import {initializeInstance} from '../lib/mark.js'
+import '../lib/bind.js'
 
 describe('bind', () => {
   window.customElements.define('bind-test-element', class extends HTMLElement {})
@@ -20,7 +21,7 @@ describe('bind', () => {
     const el = document.createElement('div')
     el.setAttribute('data-action', 'click:bind-test-element#foo')
     instance.appendChild(el)
-    bind(instance)
+    initializeInstance(instance)
     expect(instance.foo).to.have.not.been.called()
     el.click()
     expect(instance.foo).to.have.been.called(1)
@@ -32,7 +33,7 @@ describe('bind', () => {
     const el = document.createElement('div')
     el.setAttribute('data-action', 'custom:event:bind-test-element#foo')
     instance.appendChild(el)
-    bind(instance)
+    initializeInstance(instance)
     expect(instance.foo).to.have.not.been.called()
     el.dispatchEvent(new CustomEvent('custom:event'))
     expect(instance.foo).to.have.been.called(1)
@@ -42,7 +43,7 @@ describe('bind', () => {
     const instance = document.createElement('bind-test-element')
     chai.spy.on(instance, 'foo')
     instance.setAttribute('data-action', 'click:bind-test-element#foo')
-    bind(instance)
+    initializeInstance(instance)
     expect(instance.foo).to.have.not.been.called()
     instance.click()
     expect(instance.foo).to.have.been.called(1)
@@ -55,7 +56,7 @@ describe('bind', () => {
     el.getAttribute('data-action', 'click:bind-test-element#foo')
     const container = document.createElement('div')
     container.append(instance, el)
-    bind(instance)
+    initializeInstance(instance)
     el.click()
     expect(instance.foo).to.have.not.been.called()
   })
@@ -66,7 +67,7 @@ describe('bind', () => {
     const el = document.createElement('div')
     el.setAttribute('data-action', 'click:other-controller#foo')
     instance.appendChild(el)
-    bind(instance)
+    initializeInstance(instance)
     expect(instance.foo).to.have.not.been.called()
     el.click()
     expect(instance.foo).to.have.not.been.called()
@@ -78,7 +79,7 @@ describe('bind', () => {
     const el = document.createElement('div')
     el.setAttribute('data-action', 'click:bind-test-element#frob')
     instance.appendChild(el)
-    bind(instance)
+    initializeInstance(instance)
     el.click()
     expect(instance.foo).to.have.not.been.called()
   })
@@ -89,7 +90,7 @@ describe('bind', () => {
     const el = document.createElement('div')
     el.setAttribute('data-action', 'click:bind-test-element#foo submit:bind-test-element#foo')
     instance.appendChild(el)
-    bind(instance)
+    initializeInstance(instance)
     expect(instance.foo).to.have.not.been.called()
     el.dispatchEvent(new CustomEvent('click'))
     expect(instance.foo).to.have.been.called.exactly(1)
@@ -107,7 +108,7 @@ describe('bind', () => {
     const el = document.createElement('div')
     el.setAttribute('data-action', `click:bind-test-element#foo\nclick:bind-test-element#bar`)
     instance.appendChild(el)
-    bind(instance)
+    initializeInstance(instance)
     expect(instance.foo).to.have.not.been.called()
     el.dispatchEvent(new CustomEvent('click'))
     expect(instance.foo).to.have.been.called.exactly(1)
@@ -124,7 +125,7 @@ describe('bind', () => {
     el1.setAttribute('data-action', 'click:bind-test-element#foo')
     el2.setAttribute('data-action', 'submit:bind-test-element#foo')
     instance.append(el1, el2)
-    bind(instance)
+    initializeInstance(instance)
     expect(instance.foo).to.have.not.been.called()
     el1.click()
     expect(instance.foo).to.have.been.called.exactly(1)
@@ -141,7 +142,7 @@ describe('bind', () => {
     el2.setAttribute('data-action', 'submit:bind-test-element#foo')
     document.body.appendChild(instance)
 
-    bind(instance)
+    initializeInstance(instance)
 
     instance.append(el1, el2)
     // We need to wait for one microtask after injecting the HTML into to
@@ -165,7 +166,7 @@ describe('bind', () => {
     el1.setAttribute('data-action', 'click:bind-test-element#foo')
     el2.setAttribute('data-action', 'submit:bind-test-element#foo')
     instance.shadowRoot.append(el1, el2)
-    bind(instance)
+    initializeInstance(instance)
     expect(instance.foo).to.have.not.been.called()
     el1.click()
     expect(instance.foo).to.have.been.called.exactly(1)
@@ -181,7 +182,7 @@ describe('bind', () => {
     const el2 = document.createElement('div')
     el1.setAttribute('data-action', 'click:bind-test-element#foo')
     el2.setAttribute('data-action', 'submit:bind-test-element#foo')
-    bind(instance)
+    initializeInstance(instance)
     instance.shadowRoot.append(el1)
     instance.shadowRoot.append(el2)
     // We need to wait for one microtask after injecting the HTML into to
@@ -197,10 +198,10 @@ describe('bind', () => {
   describe('listenForBind', () => {
     it('re-binds actions that are denoted by HTML that is dynamically injected into the controller', async function () {
       const instance = document.createElement('bind-test-element')
-      bind(instance)
+      initializeInstance(instance)
       chai.spy.on(instance, 'foo')
       root.appendChild(instance)
-      listenForBind(root)
+      initializeInstance(root)
       const button = document.createElement('button')
       button.setAttribute('data-action', 'click:bind-test-element#foo')
       instance.appendChild(button)
@@ -215,8 +216,8 @@ describe('bind', () => {
       const instance = document.createElement('bind-test-element')
       chai.spy.on(instance, 'foo')
       root.appendChild(instance)
-      listenForBind(root).unsubscribe()
-      listenForBind(document).unsubscribe()
+      initializeInstance(root).unsubscribe()
+      initializeInstance(document).unsubscribe()
       const button = document.createElement('button')
       button.setAttribute('data-action', 'click:bind-test-element#foo')
       instance.appendChild(button)
@@ -227,12 +228,12 @@ describe('bind', () => {
       expect(instance.foo).to.have.been.called.exactly(0)
     })
 
-    it('will not bind elements that havent already had `bind()` called', async function () {
+    it('will not bind elements that havent already had `initializeInstance()` called', async function () {
       customElements.define('bind-test-not-element', class BindTestNotController extends HTMLElement {})
       const instance = document.createElement('bind-test-not-element')
       chai.spy.on(instance, 'foo')
       root.appendChild(instance)
-      listenForBind(root)
+      initializeInstance(root)
       const button = document.createElement('button')
       button.setAttribute('data-action', 'click:bind-test-not-element#foo')
       instance.appendChild(button)
@@ -243,18 +244,18 @@ describe('bind', () => {
       expect(instance.foo).to.have.been.called.exactly(0)
     })
 
-    it('will not re-bind elements that just had `bind()` called', async function () {
+    it('will not re-bind elements that just had `initializeInstance()` called', async function () {
       customElements.define(
         'bind-test-not-rebind-element',
         class BindTestNotController extends HTMLElement {
           connectedCallback() {
-            bind(this)
+            initializeInstance(this)
           }
         }
       )
       const instance = document.createElement('bind-test-not-rebind-element')
       chai.spy.on(instance, 'foo')
-      listenForBind(root)
+      initializeInstance(root)
       const button = document.createElement('button')
       button.setAttribute('data-action', 'click:bind-test-not-rebind-element#foo')
       instance.appendChild(button)
@@ -268,10 +269,10 @@ describe('bind', () => {
 
   it('re-binds actions deeply in the HTML', async function () {
     const instance = document.createElement('bind-test-element')
-    bind(instance)
+    initializeInstance(instance)
     chai.spy.on(instance, 'foo')
     root.appendChild(instance)
-    listenForBind(root)
+    initializeInstance(root)
     instance.innerHTML = `
         <div>
           <div>
@@ -292,7 +293,7 @@ describe('bind', () => {
     const el1 = document.createElement('div')
     el1.setAttribute('data-action', 'click:bind-test-element#foo')
     instance.appendChild(el1)
-    bind(instance)
+    initializeInstance(instance)
     expect(instance.foo).to.have.not.been.called()
     el1.click()
     expect(instance.foo).to.have.been.called.exactly(1)
@@ -308,8 +309,8 @@ describe('bind', () => {
     const button = document.createElement('button')
     button.setAttribute('data-action', 'submit:bind-test-element#foo')
     instance.appendChild(button)
-    bind(instance)
-    listenForBind(root)
+    initializeInstance(instance)
+    initializeInstance(root)
     await Promise.resolve()
     button.click()
     expect(instance.foo).to.have.been.called.exactly(0)

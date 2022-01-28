@@ -136,9 +136,26 @@ Important to note here is that nodes from the `shadowRoot` get returned _first_.
 
 ### What about without Decorators?
 
-If you're using decorators, then the `@target` and `@targets` decorators will turn the decorated properties into getters.
+You can use `@target` and `@targets` like normal functions, if you don't want to use decorators. For example the following two code snippets are functionally identical:
 
-If you're not using decorators, then you'll need to make a `getter`, and call `findTarget(this, key)` or `findTargets(this, key)` in the getter, for example:
+```js
+@controller
+class HelloWorldElement extends HTMLElement {
+  @target output
+  @targets pages
+}
+```
+
+```js
+class HelloWorldElement extends HTMLElement {}
+target(HelloWorldElement.prototype, 'output')
+targets(HelloWorldElement.prototype, 'pages')
+controller(HelloWorldElement)
+```
+
+Just make sure to call `controller` _last_!
+
+If you don't want to use `controller` or `target`/`targets` then you can still make use of the underyling functionality. You'll need to make a `getter`, and call `findTarget(this, key)` or `findTargets(this, key)` in the getter, for example:
 
 ```js
 import {findTarget, findTargets} from '@github/catalyst'

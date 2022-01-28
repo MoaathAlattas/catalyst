@@ -1,11 +1,17 @@
-export function autoShadowRoot(element: HTMLElement): void {
-  for (const template of element.querySelectorAll<HTMLTemplateElement>('template[data-shadowroot]')) {
-    if (template.parentElement === element) {
-      element
-        .attachShadow({
-          mode: template.getAttribute('data-shadowroot') === 'closed' ? 'closed' : 'open'
-        })
-        .append(template.content.cloneNode(true))
+import {defineMark, initialized} from './mark.js'
+
+const shadows = new WeakMap<Element, ShadowRoot>()
+defineMark('shadowroot', {
+  elementAttributeChangedCallback(child: Element, mode: string | null) {
+    if (!(child instanceof HTMLTemplateElement)) return
+    if (!child.parentElement || !initialized(child.parentElement)) return
+    const controller = child.parentElement
+    if (!shadows.has(controller)) {
+      shadows.set(
+        controller,
+        controller.shadowRoot || controller.attachShadow({mode: mode === 'closed' ? 'closed' : 'open'})
+      )
     }
+    shadows.get(controller)?.append(child.content.cloneNode(true))
   }
-}
+})
