@@ -1,11 +1,13 @@
-const controllers = new WeakSet<Element>()
+import {initialized, initializeJustForBind} from './core.js'
 
 /*
+ * @deprecated This will be removed in 2.0. Call `initializeInstance` instead.
+ *
  * Bind `[data-action]` elements from the DOM to their actions.
  *
  */
 export function bind(controller: HTMLElement): void {
-  controllers.add(controller)
+  initializeJustForBind(controller)
   if (controller.shadowRoot) bindShadow(controller.shadowRoot)
   bindElements(controller)
   listenForBind(controller.ownerDocument)
@@ -77,11 +79,11 @@ function handleEvent(event: Event) {
     if (event.type === binding.type) {
       type EventDispatcher = HTMLElement & Record<string, (ev: Event) => unknown>
       const controller = el.closest<EventDispatcher>(binding.tag)!
-      if (controllers.has(controller) && typeof controller[binding.method] === 'function') {
+      if (initialized(controller) && typeof controller[binding.method] === 'function') {
         controller[binding.method](event)
       }
       const root = el.getRootNode()
-      if (root instanceof ShadowRoot && controllers.has(root.host) && root.host.matches(binding.tag)) {
+      if (root instanceof ShadowRoot && initialized(root.host) && root.host.matches(binding.tag)) {
         const shadowController = root.host as EventDispatcher
         if (typeof shadowController[binding.method] === 'function') {
           shadowController[binding.method](event)
